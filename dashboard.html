@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Retornos DPL</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="header">
+    <h2 id="welcome"></h2>
+    <button onclick="logout()">Sair</button>
+  </div>
+
+  <div class="form-container">
+    <h3>Adicionar Novo Retorno</h3>
+    <form id="retornoForm">
+      <input type="text" name="equipe" placeholder="Equipe" required>
+      <input type="text" name="lider" placeholder="Líder" required>
+      <input type="date" name="data" required>
+      <input type="text" name="instalacao" placeholder="Instalação" required>
+      <input type="text" name="nota" placeholder="Número da Nota" required>
+      <input type="text" name="irregularidade" placeholder="Irregularidade" required>
+      <input type="text" name="observacao" placeholder="Observação">
+      <select name="situacao" required>
+        <option value="Pendente">Pendente</option>
+        <option value="Resolvido">Resolvido</option>
+      </select>
+      <button type="submit">Adicionar</button>
+    </form>
+  </div>
+
+  <div style="max-width:800px;margin:auto;padding:10px;">
+    <input type="text" id="filtro" placeholder="Filtrar retornos..." oninput="filtrarTabela()">
+    <button onclick="exportarExcel()">Exportar Excel</button>
+  </div>
+
+  <div id="tabela-container"></div>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
