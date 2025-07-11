@@ -15,7 +15,7 @@ const db = getFirestore(app);
 const colRef = collection(db, "retornos");
 
 const usuarios = ["Yan", "Dandara", "Daniela", "Mylena", "Vanessa", "Mikaelly", "Herlayne", "Charliene", "Thaís"];
-const lideres = ["Herlayne", "Thaís"];
+const lideres = ["Herlayne", "Thaís", "Mario", "Mateus"];
 
 window.login = function () {
   const nome = document.getElementById("username").value.trim();
