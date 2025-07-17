@@ -142,4 +142,48 @@ if (window.location.pathname.includes("dashboard")) {
       renderizarTabela(filtrados);
     });
   }
+
+  // 🆕 Importar CSV
+  const inputCSV = document.getElementById("arquivo-csv");
+  if (inputCSV) {
+    inputCSV.addEventListener("change", async function () {
+      const file = inputCSV.files[0];
+      if (!file) return;
+
+      if (!lideres.includes(nome)) {
+        alert("Somente líderes podem importar planilhas.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        const linhas = e.target.result.split("\n").map(l => l.trim()).filter(Boolean);
+        const cabecalho = linhas[0].split(";");
+
+        for (let i = 1; i < linhas.length; i++) {
+          const valores = linhas[i].split(";");
+          const dados = {};
+
+          for (let j = 0; j < cabecalho.length; j++) {
+            dados[cabecalho[j].toLowerCase()] = valores[j];
+          }
+
+          dados["usuario"] = nome;
+
+          if (!dados.equipe || !dados.lider || !dados.data || !dados.instalacao || !dados.nota) continue;
+
+          try {
+            await addDoc(colRef, dados);
+          } catch (err) {
+            console.error("Erro ao importar linha:", err);
+          }
+        }
+
+        alert("Importação concluída com sucesso!");
+        inputCSV.value = "";
+      };
+
+      reader.readAsText(file, "UTF-8");
+    });
+  }
 }
