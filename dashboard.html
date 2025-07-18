@@ -9,6 +9,11 @@
   <div class="header">
     <h2 id="welcome"></h2>
     <button onclick="logout()">Sair</button>
+    <div class="import-container">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+      <button onclick="document.getElementById('fileInput').click()">Importar Planilha</button>
+      <button onclick="exportarExcel()">Exportar Excel</button>
+    </div>
   </div>
 
   <div class="form-container">
@@ -31,9 +36,6 @@
 
   <div style="max-width:800px;margin:auto;padding:10px;">
     <input type="text" id="filtro" placeholder="Filtrar retornos..." oninput="filtrarTabela()">
-    <button onclick="exportarExcel()">Exportar Excel</button>
-    <input type="file" id="arquivo-csv" accept=".csv" style="display:none;">
-    <button onclick="document.getElementById('arquivo-csv').click()">Importar Planilha CSV</button>
   </div>
 
   <div id="tabela-container"></div>
