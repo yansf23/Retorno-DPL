@@ -49,41 +49,54 @@ window.handleFileImport = function(event) {
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = utils.sheet_to_json(firstSheet);
       
+      console.log("Dados lidos da planilha:", jsonData);
+      
       const progressElement = document.createElement('div');
       progressElement.id = 'import-progress';
       document.querySelector('.header').appendChild(progressElement);
       
       let successCount = 0;
+      let errorCount = 0;
       
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
         progressElement.innerText = `Importando ${i+1} de ${jsonData.length}...`;
         
         try {
-          await addDoc(colRef, {
-            equipe: row.Equipe || row.equipe || '',
-            lider: row.Líder || row.lider || row.Líderes || '',
-            data: formatDate(row.Data || row.data || ''),
-            instalacao: row.Instalação || row.instalacao || row.Instalacao || '',
-            nota: row.Nota || row.nota || row['Número da Nota'] || '',
-            irregularidade: row.Irregularidade || row.irregularidade || '',
-            observacao: row.Observação || row.observacao || row.Observacao || '',
-            situacao: row.Situação || row.situacao || row.Situacao || 'Pendente',
+          const retornoData = {
+            equipe: row.Equipe || row.equipe || row['Nome da Equipe'] || '',
+            lider: row.Líder || row.lider || row.Líderes || row.Responsável || '',
+            data: formatDate(row.Data || row.data || row['Data do Retorno'] || ''),
+            instalacao: row.Instalação || row.instalacao || row.Instalacao || row['Nº Instalação'] || '',
+            nota: row.Nota || row.nota || row['Número da Nota'] || row['Nota Fiscal'] || '',
+            irregularidade: row.Irregularidade || row.irregularidade || row.Problema || '',
+            observacao: row.Observação || row.observacao || row.Observacao || row.Comentários || '',
+            obs2: row['Obs 2'] || row.obs2 || row.Obs2 || row['Observação 2'] || '',
+            situacao: row.Situação || row.situacao || row.Situacao || row.Status || 'Pendente',
             usuario: localStorage.getItem("usuario")
-          });
+          };
+          
+          console.log(`Processando linha ${i+1}:`, retornoData);
+          
+          await addDoc(colRef, retornoData);
           successCount++;
           
           await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
-          console.error(`Erro na linha ${i+1}:`, error);
+          console.error(`Erro na linha ${i+1}:`, error, "Dados:", row);
+          errorCount++;
         }
       }
       
-      progressElement.innerText = `Importação concluída! ${successCount}/${jsonData.length} registros adicionados.`;
-      setTimeout(() => progressElement.remove(), 5000);
+      progressElement.innerHTML = `
+        Importação concluída!<br>
+        Sucesso: ${successCount} registros<br>
+        Erros: ${errorCount} registros
+      `;
+      setTimeout(() => progressElement.remove(), 10000);
     } catch (error) {
       console.error("Erro na importação:", error);
-      alert("Erro ao processar a planilha. Verifique o formato.");
+      alert("Erro ao processar a planilha. Verifique o console (F12) para detalhes.");
     }
   };
   
@@ -120,6 +133,7 @@ if (window.location.pathname.includes("dashboard")) {
       nota: form.nota.value,
       irregularidade: form.irregularidade.value,
       observacao: form.observacao.value,
+      obs2: form.obs2.value,
       situacao: form.situacao.value,
       usuario: nome
     };
@@ -137,7 +151,7 @@ if (window.location.pathname.includes("dashboard")) {
     const container = document.getElementById("tabela-container");
     let html = `<table><thead><tr>
       <th>Equipe</th><th>Líder</th><th>Data</th><th>Instalação</th>
-      <th>Número da Nota</th><th>Irregularidade</th><th>Observação</th><th>Situação</th>`;
+      <th>Número da Nota</th><th>Irregularidade</th><th>Observação</th><th>Obs 2</th><th>Situação</th>`;
     if (lideres.includes(nome)) html += `<th>Ações</th>`;
     html += `</tr></thead><tbody>`;
 
@@ -146,7 +160,7 @@ if (window.location.pathname.includes("dashboard")) {
       const id = docSnap.id;
       html += `<tr>
         <td>${d.equipe}</td><td>${d.lider}</td><td>${d.data}</td><td>${d.instalacao}</td>
-        <td>${d.nota}</td><td>${d.irregularidade}</td><td>${d.observacao || ''}</td><td>
+        <td>${d.nota}</td><td>${d.irregularidade}</td><td>${d.observacao || ''}</td><td>${d.obs2 || ''}</td><td>
         ${lideres.includes(nome) ? `<select onchange="atualizarSituacao('${id}', this.value)">
           <option ${d.situacao === 'Pendente' ? 'selected' : ''}>Pendente</option>
           <option ${d.situacao === 'Resolvido' ? 'selected' : ''}>Resolvido</option>
@@ -194,7 +208,18 @@ if (window.location.pathname.includes("dashboard")) {
     const dados = snapshot.docs.filter(doc => {
       const d = doc.data();
       return lideres.includes(nome) || d.usuario === nome;
-    }).map(doc => doc.data());
+    }).map(doc => ({
+      Equipe: doc.data().equipe,
+      Líder: doc.data().lider,
+      Data: doc.data().data,
+      Instalação: doc.data().instalacao,
+      Nota: doc.data().nota,
+      Irregularidade: doc.data().irregularidade,
+      Observação: doc.data().observacao,
+      "Obs 2": doc.data().obs2,
+      Situação: doc.data().situacao,
+      Usuário: doc.data().usuario
+    }));
 
     const worksheet = utils.json_to_sheet(dados);
     const workbook = utils.book_new();
