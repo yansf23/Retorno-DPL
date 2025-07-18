@@ -5,7 +5,7 @@ body {
   padding: 0;
 }
 .login-container, .header, #tabela-container, .form-container {
-  max-width: 1450px;  /* Ajuste final para 1450px */
+  max-width: 1450px;
   margin: auto;
   padding: 20px;
 }
@@ -36,6 +36,12 @@ button {
 button:hover {
   background-color: #0056b3;
 }
+button[onclick="limparTodosRetornos()"] {
+  background-color: #dc3545;
+}
+button[onclick="limparTodosRetornos()"]:hover {
+  background-color: #bb2d3b;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -57,9 +63,25 @@ td:nth-child(1), th:nth-child(1) { /* Equipe */
   min-width: 180px;
   max-width: 180px;
 }
+td:nth-child(2), th:nth-child(2) { /* Líder */
+  min-width: 150px;
+  max-width: 150px;
+}
 td:nth-child(3), th:nth-child(3) { /* Data */
   min-width: 120px;
   max-width: 120px;
+}
+td:nth-child(4), th:nth-child(4) { /* Instalação */
+  min-width: 130px;
+  max-width: 130px;
+}
+td:nth-child(5), th:nth-child(5) { /* Nota */
+  min-width: 130px;
+  max-width: 130px;
+}
+td:nth-child(6), th:nth-child(6) { /* Irregularidade */
+  min-width: 150px;
+  max-width: 150px;
 }
 td:nth-child(7), th:nth-child(7) { /* Observação */
   min-width: 220px;
@@ -74,8 +96,12 @@ td:nth-child(9), th:nth-child(9) { /* Medidor Instalado */
   max-width: 200px;
 }
 td:nth-child(10), th:nth-child(10) { /* Situação */
-  min-width: 150px;  /* Aumentado para 150px */
+  min-width: 150px;
   max-width: 150px;
+}
+td:nth-child(11), th:nth-child(11) { /* Ações */
+  min-width: 120px;
+  max-width: 120px;
 }
 .form-container {
   background: #fff;
