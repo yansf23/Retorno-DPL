@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB7aQRg_9UOMBwU7j7gIP8Fl6yVUmg",
@@ -12,6 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const colRef = collection(db, "retornos");
 
 const usuarios = ["Yan", "Dandara", "Daniela", "Mylena", "Vanessa", "Mikaelly", "Herlayne", "Charliene", "Thaís", "Mario", "Mateus"];
@@ -31,6 +33,74 @@ window.logout = function () {
   localStorage.removeItem("usuario");
   window.location.href = "index.html";
 };
+
+window.handleFileImport = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  
+  reader.onload = async function(e) {
+    try {
+      const { utils, read } = await import("https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs");
+      
+      const data = new Uint8Array(e.target.result);
+      const workbook = read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = utils.sheet_to_json(firstSheet);
+      
+      const progressElement = document.createElement('div');
+      progressElement.id = 'import-progress';
+      document.querySelector('.header').appendChild(progressElement);
+      
+      let successCount = 0;
+      
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        progressElement.innerText = `Importando ${i+1} de ${jsonData.length}...`;
+        
+        try {
+          await addDoc(colRef, {
+            equipe: row.Equipe || row.equipe || '',
+            lider: row.Líder || row.lider || row.Líderes || '',
+            data: formatDate(row.Data || row.data || ''),
+            instalacao: row.Instalação || row.instalacao || row.Instalacao || '',
+            nota: row.Nota || row.nota || row['Número da Nota'] || '',
+            irregularidade: row.Irregularidade || row.irregularidade || '',
+            observacao: row.Observação || row.observacao || row.Observacao || '',
+            situacao: row.Situação || row.situacao || row.Situacao || 'Pendente',
+            usuario: localStorage.getItem("usuario")
+          });
+          successCount++;
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Erro na linha ${i+1}:`, error);
+        }
+      }
+      
+      progressElement.innerText = `Importação concluída! ${successCount}/${jsonData.length} registros adicionados.`;
+      setTimeout(() => progressElement.remove(), 5000);
+    } catch (error) {
+      console.error("Erro na importação:", error);
+      alert("Erro ao processar a planilha. Verifique o formato.");
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+};
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  
+  return date.toISOString().split('T')[0];
+}
 
 if (window.location.pathname.includes("dashboard")) {
   const nome = localStorage.getItem("usuario");
@@ -143,47 +213,5 @@ if (window.location.pathname.includes("dashboard")) {
     });
   }
 
-  // 🆕 Importar CSV
-  const inputCSV = document.getElementById("arquivo-csv");
-  if (inputCSV) {
-    inputCSV.addEventListener("change", async function () {
-      const file = inputCSV.files[0];
-      if (!file) return;
-
-      if (!lideres.includes(nome)) {
-        alert("Somente líderes podem importar planilhas.");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async function (e) {
-        const linhas = e.target.result.split("\n").map(l => l.trim()).filter(Boolean);
-        const cabecalho = linhas[0].split(";");
-
-        for (let i = 1; i < linhas.length; i++) {
-          const valores = linhas[i].split(";");
-          const dados = {};
-
-          for (let j = 0; j < cabecalho.length; j++) {
-            dados[cabecalho[j].toLowerCase()] = valores[j];
-          }
-
-          dados["usuario"] = nome;
-
-          if (!dados.equipe || !dados.lider || !dados.data || !dados.instalacao || !dados.nota) continue;
-
-          try {
-            await addDoc(colRef, dados);
-          } catch (err) {
-            console.error("Erro ao importar linha:", err);
-          }
-        }
-
-        alert("Importação concluída com sucesso!");
-        inputCSV.value = "";
-      };
-
-      reader.readAsText(file, "UTF-8");
-    });
-  }
+  document.getElementById('fileInput').addEventListener('change', handleFileImport, false);
 }
