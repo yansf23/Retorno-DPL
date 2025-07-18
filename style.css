@@ -5,7 +5,7 @@ body {
   padding: 0;
 }
 .login-container, .header, #tabela-container, .form-container {
-  max-width: 1400px;  /* Aumentado para 1400px */
+  max-width: 1450px;  /* Ajuste final para 1450px */
   margin: auto;
   padding: 20px;
 }
@@ -50,7 +50,7 @@ th, td {
 }
 /* Larguras padrão para células */
 th, td {
-  max-width: 130px;  /* Largura base aumentada */
+  max-width: 130px;
 }
 /* Larguras específicas para os campos */
 td:nth-child(1), th:nth-child(1) { /* Equipe */
@@ -70,8 +70,12 @@ td:nth-child(8), th:nth-child(8) { /* Obs 2 */
   max-width: 250px;
 }
 td:nth-child(9), th:nth-child(9) { /* Medidor Instalado */
-  min-width: 200px;  /* Aumentado para 200px */
+  min-width: 200px;
   max-width: 200px;
+}
+td:nth-child(10), th:nth-child(10) { /* Situação */
+  min-width: 150px;  /* Aumentado para 150px */
+  max-width: 150px;
 }
 .form-container {
   background: #fff;
