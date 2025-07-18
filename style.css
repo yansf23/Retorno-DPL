@@ -5,7 +5,7 @@ body {
   padding: 0;
 }
 .login-container, .header, #tabela-container, .form-container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: auto;
   padding: 20px;
 }
@@ -40,14 +40,14 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 th, td {
   padding: 8px;
   border: 1px solid #ccc;
   text-align: center;
   word-wrap: break-word;
-  max-width: 120px;
+  max-width: 110px;
 }
 .form-container {
   background: #fff;
