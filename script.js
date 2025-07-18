@@ -65,15 +65,15 @@ window.handleFileImport = function(event) {
         try {
           const retornoData = {
             equipe: row.Equipe || row.equipe || row['Nome da Equipe'] || '',
-            lider: row.Líder || row.lider || row.Líderes || row.Responsável || '',
-            data: formatDate(row.Data || row.data || row['Data do Retorno'] || ''),
-            instalacao: row.Instalação || row.instalacao || row.Instalacao || row['Nº Instalação'] || '',
-            nota: row.Nota || row.nota || row['Número da Nota'] || row['Nota Fiscal'] || '',
-            irregularidade: row.Irregularidade || row.irregularidade || row.Problema || '',
-            observacao: row.Observação || row.observacao || row.Observacao || row.Comentários || '',
-            obs2: row['Obs 2'] || row.obs2 || row.Obs2 || row['Observação 2'] || '',
+            lider: row.Lider || row.lider || row['Líder'] || row.Líderes || row.Responsável || row['Responsavel'] || '',
+            data: formatDate(row.Data || row.data || row['Data do Retorno'] || row['Data Retorno'] || ''),
+            instalacao: row.Instalação || row.instalacao || row.Instalacao || row['Nº Instalação'] || row.Instalacao || row['N Instalacao'] || '',
+            nota: row.Nota || row.nota || row['Número da Nota'] || row['Nota Fiscal'] || row['Numero Nota'] || '',
+            irregularidade: row.Irregularidade || row.irregularidade || row.Problema || row['Tipo Irregularidade'] || '',
+            observacao: row.Observacao || row.observacao || row['Observação'] || row.Observacao || row.Comentários || row.Comentarios || '',
+            obs2: row['Obs 2'] || row.obs2 || row.Obs2 || row['Observação 2'] || row['Observacao 2'] || '',
             medidorInstalado: row['Medidor Instalado'] || row.medidorInstalado || row['Medidor'] || row.Medidor || '',
-            situacao: row.Situação || row.situacao || row.Situacao || row.Status || 'Pendente',
+            situacao: detectarSituacao(row.Situacao || row.situacao || row['Situação'] || row.Situacao || row.Status || ''),
             usuario: localStorage.getItem("usuario")
           };
           
@@ -105,16 +105,96 @@ window.handleFileImport = function(event) {
   event.target.value = '';
 };
 
+function detectarSituacao(situacao) {
+  if (!situacao) return 'Pendente';
+  
+  const situacaoLower = situacao.toString().toLowerCase();
+  if (situacaoLower.includes('resolv') || 
+      situacaoLower.includes('conclu') ||
+      situacaoLower.includes('finaliz') ||
+      situacaoLower.includes('complet') ||
+      situacaoLower === 'resolvido') {
+    return 'Resolvido';
+  }
+  return 'Pendente';
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '';
   
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // Se já estiver no formato DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
   
+  // Se estiver no formato YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const parts = dateStr.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  
+  // Tenta converter de outros formatos
   const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr;
+  if (isNaN(date.getTime())) {
+    // Tenta parsear formato brasileiro
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      // Assume formato DD/MM/YYYY ou MM/DD/YYYY
+      if (parts[0].length === 4) { // YYYY/MM/DD
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else if (parts[2].length === 4) { // DD/MM/YYYY ou MM/DD/YYYY
+        // Verifica se o dia é válido (>12)
+        if (parseInt(parts[0]) > 12) {
+          return `${parts[0]}/${parts[1]}/${parts[2]}`; // DD/MM/YYYY
+        } else {
+          return `${parts[1]}/${parts[0]}/${parts[2]}`; // MM/DD/YYYY -> DD/MM/YYYY
+        }
+      }
+    }
+    return dateStr; // Retorna original se não for data válida
+  }
   
-  return date.toISOString().split('T')[0];
+  // Formata como DD/MM/YYYY
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 }
+
+window.limparTodosRetornos = async function() {
+  const nome = localStorage.getItem("usuario");
+  if (!lideres.includes(nome)) {
+    alert("Apenas líderes podem limpar todos os retornos.");
+    return;
+  }
+
+  if (!confirm("ATENÇÃO! Isso irá remover TODOS os retornos permanentemente. Deseja continuar?")) {
+    return;
+  }
+
+  try {
+    const progressElement = document.createElement('div');
+    progressElement.id = 'import-progress';
+    progressElement.innerText = "Removendo todos os retornos...";
+    document.querySelector('.header').appendChild(progressElement);
+
+    const snapshot = await getDocs(colRef);
+    const batchSize = 20;
+    const docs = snapshot.docs;
+    
+    for (let i = 0; i < docs.length; i += batchSize) {
+      const batch = docs.slice(i, i + batchSize);
+      await Promise.all(batch.map(doc => deleteDoc(doc.ref)));
+      progressElement.innerText = `Removendo... ${Math.min(i + batchSize, docs.length)}/${docs.length}`;
+    }
+
+    progressElement.innerText = "Todos os retornos foram removidos com sucesso!";
+    setTimeout(() => progressElement.remove(), 5000);
+  } catch (error) {
+    console.error("Erro ao remover retornos:", error);
+    alert("Ocorreu um erro ao remover os retornos.");
+  }
+};
 
 if (window.location.pathname.includes("dashboard")) {
   const nome = localStorage.getItem("usuario");
