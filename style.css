@@ -5,7 +5,7 @@ body {
   padding: 0;
 }
 .login-container, .header, #tabela-container, .form-container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: auto;
   padding: 20px;
 }
@@ -40,14 +40,30 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  font-size: 0.85em;
+  font-size: 0.9em;
 }
 th, td {
   padding: 8px;
   border: 1px solid #ccc;
   text-align: center;
   word-wrap: break-word;
+}
+/* Larguras padrão para células */
+th, td {
   max-width: 110px;
+}
+/* Larguras específicas para os campos solicitados */
+td:nth-child(3), th:nth-child(3) { /* Data */
+  min-width: 120px;
+  max-width: 120px;
+}
+td:nth-child(7), th:nth-child(7) { /* Observação */
+  min-width: 200px;
+  max-width: 200px;
+}
+td:nth-child(8), th:nth-child(8) { /* Obs 2 */
+  min-width: 150px;
+  max-width: 150px;
 }
 .form-container {
   background: #fff;
