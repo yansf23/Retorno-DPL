@@ -5,7 +5,7 @@ body {
   padding: 0;
 }
 .login-container, .header, #tabela-container, .form-container {
-  max-width: 1200px;
+  max-width: 1300px;  /* Aumentado para acomodar os campos mais largos */
   margin: auto;
   padding: 20px;
 }
@@ -43,27 +43,31 @@ table {
   font-size: 0.9em;
 }
 th, td {
-  padding: 8px;
+  padding: 10px;  /* Aumentado o padding para melhor espaçamento */
   border: 1px solid #ccc;
   text-align: center;
   word-wrap: break-word;
 }
 /* Larguras padrão para células */
 th, td {
-  max-width: 110px;
+  max-width: 120px;  /* Largura base aumentada */
 }
 /* Larguras específicas para os campos solicitados */
+td:nth-child(1), th:nth-child(1) { /* Equipe */
+  min-width: 180px;  /* Aumentado significativamente */
+  max-width: 180px;
+}
 td:nth-child(3), th:nth-child(3) { /* Data */
   min-width: 120px;
   max-width: 120px;
 }
 td:nth-child(7), th:nth-child(7) { /* Observação */
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 220px;  /* Aumentado */
+  max-width: 220px;
 }
 td:nth-child(8), th:nth-child(8) { /* Obs 2 */
-  min-width: 150px;
-  max-width: 150px;
+  min-width: 250px;  /* Aumentado consideravelmente */
+  max-width: 250px;
 }
 .form-container {
   background: #fff;
