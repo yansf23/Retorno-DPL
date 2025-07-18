@@ -72,6 +72,7 @@ window.handleFileImport = function(event) {
             irregularidade: row.Irregularidade || row.irregularidade || row.Problema || '',
             observacao: row.Observação || row.observacao || row.Observacao || row.Comentários || '',
             obs2: row['Obs 2'] || row.obs2 || row.Obs2 || row['Observação 2'] || '',
+            medidoInstalado: row['Medido Instalado'] || row.medidoInstalado || row.Medido || row['Medido'] || '',
             situacao: row.Situação || row.situacao || row.Situacao || row.Status || 'Pendente',
             usuario: localStorage.getItem("usuario")
           };
@@ -134,6 +135,7 @@ if (window.location.pathname.includes("dashboard")) {
       irregularidade: form.irregularidade.value,
       observacao: form.observacao.value,
       obs2: form.obs2.value,
+      medidoInstalado: form.medidoInstalado.value,
       situacao: form.situacao.value,
       usuario: nome
     };
@@ -151,7 +153,7 @@ if (window.location.pathname.includes("dashboard")) {
     const container = document.getElementById("tabela-container");
     let html = `<table><thead><tr>
       <th>Equipe</th><th>Líder</th><th>Data</th><th>Instalação</th>
-      <th>Número da Nota</th><th>Irregularidade</th><th>Observação</th><th>Obs 2</th><th>Situação</th>`;
+      <th>Número da Nota</th><th>Irregularidade</th><th>Observação</th><th>Obs 2</th><th>Medido Instalado</th><th>Situação</th>`;
     if (lideres.includes(nome)) html += `<th>Ações</th>`;
     html += `</tr></thead><tbody>`;
 
@@ -160,7 +162,7 @@ if (window.location.pathname.includes("dashboard")) {
       const id = docSnap.id;
       html += `<tr>
         <td>${d.equipe}</td><td>${d.lider}</td><td>${d.data}</td><td>${d.instalacao}</td>
-        <td>${d.nota}</td><td>${d.irregularidade}</td><td>${d.observacao || ''}</td><td>${d.obs2 || ''}</td><td>
+        <td>${d.nota}</td><td>${d.irregularidade}</td><td>${d.observacao || ''}</td><td>${d.obs2 || ''}</td><td>${d.medidoInstalado || ''}</td><td>
         ${lideres.includes(nome) ? `<select onchange="atualizarSituacao('${id}', this.value)">
           <option ${d.situacao === 'Pendente' ? 'selected' : ''}>Pendente</option>
           <option ${d.situacao === 'Resolvido' ? 'selected' : ''}>Resolvido</option>
@@ -217,6 +219,7 @@ if (window.location.pathname.includes("dashboard")) {
       Irregularidade: doc.data().irregularidade,
       Observação: doc.data().observacao,
       "Obs 2": doc.data().obs2,
+      "Medido Instalado": doc.data().medidoInstalado,
       Situação: doc.data().situacao,
       Usuário: doc.data().usuario
     }));
