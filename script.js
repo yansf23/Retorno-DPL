@@ -19,96 +19,7 @@ const colRef = collection(db, "retornos");
 const usuarios = ["Yan", "Dandara", "Daniela", "Mylena", "Vanessa", "Mikaelly", "Herlayne", "Charliene", "Thaís", "Mario", "Mateus"];
 const lideres = ["Herlayne", "Thaís", "Mario", "Mateus"];
 
-window.login = function () {
-  const nome = document.getElementById("username").value.trim();
-  if (usuarios.includes(nome)) {
-    localStorage.setItem("usuario", nome);
-    window.location.href = "dashboard.html";
-  } else {
-    document.getElementById("error-msg").innerText = "Usuário não autorizado.";
-  }
-};
-
-window.logout = function () {
-  localStorage.removeItem("usuario");
-  window.location.href = "index.html";
-};
-
-window.handleFileImport = function(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  
-  reader.onload = async function(e) {
-    try {
-      const { utils, read } = await import("https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs");
-      
-      const data = new Uint8Array(e.target.result);
-      const workbook = read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = utils.sheet_to_json(firstSheet);
-      
-      console.log("Dados brutos da planilha:", jsonData);
-      
-      const progressElement = document.createElement('div');
-      progressElement.id = 'import-progress';
-      document.querySelector('.header').appendChild(progressElement);
-      
-      let successCount = 0;
-      let errorCount = 0;
-      
-      for (let i = 0; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        progressElement.innerText = `Importando ${i+1} de ${jsonData.length}...`;
-        
-        try {
-          if (i === 0) {
-            console.log("Nomes das colunas na planilha:", Object.keys(row));
-          }
-
-          const retornoData = {
-            equipe: getValue(row, ['Equipe', 'equipe', 'Nome da Equipe', 'Equipa']),
-            lider: getValue(row, ['Lider', 'lider', 'Líder', 'Líderes', 'Responsável', 'Responsavel']),
-            data: formatarDataParaFirestore(getValue(row, ['Data', 'data', 'Data do Retorno', 'Data Retorno', 'Date'])),
-            instalacao: getValue(row, ['Instalação', 'instalacao', 'Instalacao', 'Nº Instalação', 'N Instalacao', 'N° Instalação']),
-            nota: getValue(row, ['Nota', 'nota', 'Número da Nota', 'Nota Fiscal', 'Numero Nota', 'N° Nota', 'Numero']),
-            irregularidade: getValue(row, ['Irregularidade', 'irregularidade', 'Problema', 'Tipo Irregularidade', 'Irregularidades']),
-            observacao: getValue(row, ['Observacao', 'observacao', 'Observação', 'Comentários', 'Comentarios', 'Obs', 'Observ', 'Obs.']),
-            obs2: getValue(row, ['Obs 2', 'obs2', 'Obs2', 'Observação 2', 'Observacao 2', 'Obs Secundária', 'Obs Complementar']),
-            medidorInstalado: getValue(row, ['Medidor Instalado', 'medidorInstalado', 'Medidor', 'N° Medidor']),
-            situacao: detectarSituacao(getValue(row, ['Situacao', 'situacao', 'Situação', 'Status', 'Estado'])),
-            usuario: localStorage.getItem("usuario")
-          };
-
-          console.log(`Dados processados linha ${i+1}:`, retornoData);
-          
-          await addDoc(colRef, retornoData);
-          successCount++;
-          
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-          console.error(`Erro na linha ${i+1}:`, error, "Dados:", row);
-          errorCount++;
-        }
-      }
-      
-      progressElement.innerHTML = `
-        Importação concluída!<br>
-        Sucesso: ${successCount} registros<br>
-        Erros: ${errorCount} registros
-      `;
-      setTimeout(() => progressElement.remove(), 10000);
-    } catch (error) {
-      console.error("Erro na importação:", error);
-      alert("Erro ao processar a planilha. Verifique o console (F12) para detalhes.");
-    }
-  };
-  
-  reader.readAsArrayBuffer(file);
-  event.target.value = '';
-};
-
+// Função auxiliar para obter valores de múltiplas colunas possíveis
 function getValue(row, possibleKeys) {
   for (const key of possibleKeys) {
     if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
@@ -118,27 +29,87 @@ function getValue(row, possibleKeys) {
   return '';
 }
 
-function detectarSituacao(valor) {
-  if (!valor) return 'Pendente';
+// Função especial para extrair irregularidades
+function extrairIrregularidade(row) {
+  // Primeiro tenta encontrar em colunas nomeadas
+  const irregularidade = getValue(row, [
+    'Irregularidade', 'IRREGULARIDADE', 'Problema', 'PROBLEMA',
+    'Tipo Irregularidade', 'Motivo', 'MOTIVO', 'Descrição do Problema'
+  ]);
   
-  const valorStr = valor.toString().toLowerCase().trim();
-  
-  const resolvidoKeywords = [
-    'resolvido', 'concluído', 'concluido', 'finalizado', 
-    'completo', 'atendido', 'ok', 'feito', 'pronto', 'solucionado'
-  ];
-  
-  if (resolvidoKeywords.some(keyword => valorStr.includes(keyword))) {
-    return 'Resolvido';
+  // Se não encontrar, procura por padrões no texto
+  if (!irregularidade) {
+    for (const key in row) {
+      if (typeof row[key] === 'string') {
+        const lowerValue = row[key].toLowerCase();
+        if (lowerValue.includes('sem foto') || 
+            lowerValue.includes('incompleto') ||
+            lowerValue.includes('faltando') ||
+            lowerValue.includes('divergente')) {
+          return row[key].substring(0, 150); // Limita o tamanho
+        }
+      }
+    }
   }
   
-  if (/100%|finaliz|complet|atendid|^ok$|^pronto$|solucionado/i.test(valorStr)) {
-    return 'Resolvido';
+  return irregularidade || '';
+}
+
+// Função especial para extrair observações
+function extrairObservacao(row) {
+  // Tenta encontrar em colunas convencionais
+  const obs = getValue(row, [
+    'Observação', 'OBSERVACAO', 'Observacao', 'Comentários', 
+    'COMENTARIOS', 'Obs', 'OBS', 'Obs.', 'Anotações', 'ANOTACOES'
+  ]);
+  
+  // Se não encontrar, procura texto longo em outras colunas
+  if (!obs) {
+    for (const key in row) {
+      const value = row[key];
+      if (typeof value === 'string' && value.length > 30 && 
+          !key.match(/data|instalacao|nota|equipe|lider|situacao/i)) {
+        return value.substring(0, 250); // Limita o tamanho
+      }
+    }
+  }
+  
+  return obs || '';
+}
+
+// Função especial para extrair situação
+function extrairSituacao(row) {
+  // Tenta encontrar em colunas nomeadas
+  const situacao = getValue(row, [
+    'Situação', 'SITUACAO', 'Status', 'STATUS', 
+    'Estado', 'ESTADO', 'Resolução', 'RESOLUCAO'
+  ]);
+  
+  // Analisa o conteúdo para determinar se está resolvido
+  if (situacao) {
+    const situacaoLower = situacao.toString().toLowerCase();
+    if (situacaoLower.includes('resolv') || 
+        situacaoLower.includes('conclu') ||
+        situacaoLower.includes('finaliz') ||
+        situacaoLower.includes('ok') ||
+        situacaoLower.includes('complet') ||
+        situacaoLower.includes('atendido')) {
+      return 'Resolvido';
+    }
+  }
+  
+  // Verifica outras colunas para indicadores de resolução
+  for (const key in row) {
+    const value = row[key];
+    if (typeof value === 'string' && value.toLowerCase().includes('resolvido')) {
+      return 'Resolvido';
+    }
   }
   
   return 'Pendente';
 }
 
+// Função para formatar data corretamente
 function formatarDataParaFirestore(dataStr) {
   if (!dataStr) return '';
   
@@ -193,6 +164,97 @@ function formatarDataParaExibicao(date) {
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 }
+
+window.login = function () {
+  const nome = document.getElementById("username").value.trim();
+  if (usuarios.includes(nome)) {
+    localStorage.setItem("usuario", nome);
+    window.location.href = "dashboard.html";
+  } else {
+    document.getElementById("error-msg").innerText = "Usuário não autorizado.";
+  }
+};
+
+window.logout = function () {
+  localStorage.removeItem("usuario");
+  window.location.href = "index.html";
+};
+
+window.handleFileImport = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  
+  reader.onload = async function(e) {
+    try {
+      const { utils, read } = await import("https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs");
+      
+      const data = new Uint8Array(e.target.result);
+      const workbook = read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = utils.sheet_to_json(firstSheet);
+      
+      console.log("Dados brutos da planilha:", jsonData);
+      
+      const progressElement = document.createElement('div');
+      progressElement.id = 'import-progress';
+      document.querySelector('.header').appendChild(progressElement);
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        progressElement.innerText = `Importando ${i+1} de ${jsonData.length}...`;
+        
+        try {
+          // Mostra os nomes reais das colunas na primeira linha
+          if (i === 0) {
+            console.log("Nomes reais das colunas na planilha:", Object.keys(row));
+          }
+
+          const retornoData = {
+            equipe: getValue(row, ['Equipe', 'equipe', 'Nome da Equipe', 'EQUIPE']),
+            lider: getValue(row, ['Líder', 'Lider', 'lider', 'Líderes', 'Responsável', 'RESPONSAVEL']),
+            data: formatarDataParaFirestore(getValue(row, ['Data', 'data', 'DATA', 'Data Retorno'])),
+            instalacao: getValue(row, ['Instalação', 'Instalacao', 'instalacao', 'Nº Instalação', 'INSTALACAO']),
+            nota: getValue(row, ['Nota', 'nota', 'Número da Nota', 'NUMERO NOTA', 'NOTA FISCAL']),
+            irregularidade: extrairIrregularidade(row),
+            observacao: extrairObservacao(row),
+            obs2: getValue(row, ['Obs 2', 'OBS2', 'Observação 2', 'Obs Complementar', 'OBS COMPLEMENTAR']),
+            medidorInstalado: getValue(row, ['Medidor Instalado', 'MEDIDOR', 'Medidor', 'Nº Medidor']),
+            situacao: extrairSituacao(row),
+            usuario: localStorage.getItem("usuario")
+          };
+
+          console.log(`Dados processados linha ${i+1}:`, retornoData);
+          
+          await addDoc(colRef, retornoData);
+          successCount++;
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Erro na linha ${i+1}:`, error, "Dados:", row);
+          errorCount++;
+        }
+      }
+      
+      progressElement.innerHTML = `
+        Importação concluída!<br>
+        Sucesso: ${successCount} registros<br>
+        Erros: ${errorCount} registros
+      `;
+      setTimeout(() => progressElement.remove(), 10000);
+    } catch (error) {
+      console.error("Erro na importação:", error);
+      alert("Erro ao processar a planilha. Verifique o console (F12) para detalhes.");
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+};
 
 window.limparTodosRetornos = async function() {
   const nome = localStorage.getItem("usuario");
