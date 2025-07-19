@@ -29,33 +29,49 @@ function getValue(row, possibleKeys) {
   return '';
 }
 
-// Função especial para extrair irregularidades (APENAS NÚMEROS)
+// Função especial para extrair irregularidades (VERSÃO FINAL CORRIGIDA)
 function extrairIrregularidade(row) {
-  // Tenta encontrar em colunas nomeadas
-  const irregularidade = getValue(row, [
-    'Irregularidade', 'IRREGULARIDADE', 'Número da Irregularidade', 
-    'COD_IRREGULARIDADE', 'Código Irregularidade', 'Código', 'CODIGO'
-  ]);
-  
-  // Extrai apenas números do valor encontrado
-  if (irregularidade) {
-    const apenasNumeros = irregularidade.toString().match(/\d+/g);
-    if (apenasNumeros && apenasNumeros.length > 0) {
-      return apenasNumeros.join('');
-    }
-  }
-  
-  // Se não encontrar, procura em outras colunas por padrões numéricos
-  for (const key in row) {
-    if (typeof row[key] === 'string' || typeof row[key] === 'number') {
-      const numerosEncontrados = row[key].toString().match(/\d+/g);
-      if (numerosEncontrados && numerosEncontrados.length > 0) {
-        return numerosEncontrados.join('');
+  // Lista de colunas prioritárias para irregularidade
+  const colunasIrregularidade = [
+    'Irregularidade', 'IRREGULARIDADE', 'Número da Irregularidade',
+    'COD_IRREGULARIDADE', 'Código Irregularidade', 'Código', 'CODIGO',
+    'N° Irregularidade', 'Numero Irregularidade', 'Cod. Irregularidade',
+    'Tipo Irregularidade', 'Codigo Retorno'
+  ];
+
+  // 1. Busca nas colunas específicas de irregularidade
+  for (const coluna of colunasIrregularidade) {
+    if (row[coluna] !== undefined && row[coluna] !== null && row[coluna] !== '') {
+      const valor = row[coluna].toString().trim();
+      // Extrai apenas números (remove qualquer texto)
+      const numeros = valor.match(/\d+/g);
+      if (numeros && numeros.length > 0) {
+        return numeros.join(''); // Retorna apenas os dígitos encontrados
       }
     }
   }
-  
-  return ''; // Retorna vazio se não encontrar números
+
+  // 2. Se não encontrou, procura em outras colunas que contenham termos relacionados
+  const outrasColunas = Object.keys(row).filter(key => 
+    !colunasIrregularidade.includes(key) &&
+    key.toLowerCase() !== 'equipe' &&
+    key.toLowerCase() !== 'equip' &&
+    key.toLowerCase() !== 'lider' &&
+    key.toLowerCase() !== 'instalacao' &&
+    key.toLowerCase() !== 'nota'
+  );
+
+  for (const coluna of outrasColunas) {
+    if (row[coluna] !== undefined && row[coluna] !== null && row[coluna] !== '') {
+      const valor = row[coluna].toString().trim();
+      // Verifica se é um número puro (sem letras ou outros caracteres)
+      if (/^\d+$/.test(valor)) {
+        return valor;
+      }
+    }
+  }
+
+  return ''; // Retorna vazio se não encontrar
 }
 
 // Função especial para extrair observações
@@ -63,7 +79,8 @@ function extrairObservacao(row) {
   // Tenta encontrar em colunas convencionais
   const obs = getValue(row, [
     'Observação', 'OBSERVACAO', 'Observacao', 'Comentários', 
-    'COMENTARIOS', 'Obs', 'OBS', 'Obs.', 'Anotações', 'ANOTACOES'
+    'COMENTARIOS', 'Obs', 'OBS', 'Obs.', 'Anotações', 'ANOTACOES',
+    'Descrição', 'DESCRICAO'
   ]);
   
   // Se não encontrar, procura texto longo em outras colunas
@@ -97,14 +114,6 @@ function extrairSituacao(row) {
         situacaoLower.includes('ok') ||
         situacaoLower.includes('complet') ||
         situacaoLower.includes('atendido')) {
-      return 'Resolvido';
-    }
-  }
-  
-  // Verifica outras colunas para indicadores de resolução
-  for (const key in row) {
-    const value = row[key];
-    if (typeof value === 'string' && value.toLowerCase().includes('resolvido')) {
       return 'Resolvido';
     }
   }
