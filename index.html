@@ -1,17 +1,34 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login - Controle de Retornos</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="login-container">
     <h2>Login</h2>
-    <input type="text" id="username" placeholder="Digite seu nome">
+    <input type="text" id="username" placeholder="Usuário" />
+    <input type="password" id="password" placeholder="Senha" />
     <button onclick="login()">Entrar</button>
-    <p id="error-msg"></p>
+    <p id="error" class="error"></p>
   </div>
-  <script type="module" src="script.js"></script>
+
+  <script>
+    function login() {
+      const user = document.getElementById('username').value.toLowerCase();
+      const pass = document.getElementById('password').value;
+      const leader = 'herlayne';
+      const users = ['yan', 'dandara', 'daniela', 'mylena', 'vanessa', 'mikaelly', leader];
+      const password = '123';
+
+      if (users.includes(user) && pass === password) {
+        localStorage.setItem('user', user);
+        window.location.href = 'dashboard.html';
+      } else {
+        document.getElementById('error').innerText = 'Usuário ou senha incorretos.';
+      }
+    }
+  </script>
 </body>
 </html>
