@@ -49,7 +49,7 @@ window.handleFileImport = function(event) {
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = utils.sheet_to_json(firstSheet);
       
-      console.log("Dados lidos da planilha:", jsonData);
+      console.log("Dados brutos da planilha:", jsonData);
       
       const progressElement = document.createElement('div');
       progressElement.id = 'import-progress';
@@ -63,21 +63,25 @@ window.handleFileImport = function(event) {
         progressElement.innerText = `Importando ${i+1} de ${jsonData.length}...`;
         
         try {
+          if (i === 0) {
+            console.log("Nomes das colunas na planilha:", Object.keys(row));
+          }
+
           const retornoData = {
-            equipe: row.Equipe || row.equipe || row['Nome da Equipe'] || '',
-            lider: row.Lider || row.lider || row['Líder'] || row.Líderes || row.Responsável || row['Responsavel'] || '',
-            data: formatDate(row.Data || row.data || row['Data do Retorno'] || row['Data Retorno'] || ''),
-            instalacao: row.Instalação || row.instalacao || row.Instalacao || row['Nº Instalação'] || row.Instalacao || row['N Instalacao'] || '',
-            nota: row.Nota || row.nota || row['Número da Nota'] || row['Nota Fiscal'] || row['Numero Nota'] || '',
-            irregularidade: row.Irregularidade || row.irregularidade || row.Problema || row['Tipo Irregularidade'] || '',
-            observacao: row.Observacao || row.observacao || row['Observação'] || row.Observacao || row.Comentários || row.Comentarios || '',
-            obs2: row['Obs 2'] || row.obs2 || row.Obs2 || row['Observação 2'] || row['Observacao 2'] || '',
-            medidorInstalado: row['Medidor Instalado'] || row.medidorInstalado || row['Medidor'] || row.Medidor || '',
-            situacao: detectarSituacao(row.Situacao || row.situacao || row['Situação'] || row.Situacao || row.Status || ''),
+            equipe: getValue(row, ['Equipe', 'equipe', 'Nome da Equipe', 'Equipa']),
+            lider: getValue(row, ['Lider', 'lider', 'Líder', 'Líderes', 'Responsável', 'Responsavel']),
+            data: formatarDataParaFirestore(getValue(row, ['Data', 'data', 'Data do Retorno', 'Data Retorno', 'Date'])),
+            instalacao: getValue(row, ['Instalação', 'instalacao', 'Instalacao', 'Nº Instalação', 'N Instalacao', 'N° Instalação']),
+            nota: getValue(row, ['Nota', 'nota', 'Número da Nota', 'Nota Fiscal', 'Numero Nota', 'N° Nota', 'Numero']),
+            irregularidade: getValue(row, ['Irregularidade', 'irregularidade', 'Problema', 'Tipo Irregularidade', 'Irregularidades']),
+            observacao: getValue(row, ['Observacao', 'observacao', 'Observação', 'Comentários', 'Comentarios', 'Obs', 'Observ', 'Obs.']),
+            obs2: getValue(row, ['Obs 2', 'obs2', 'Obs2', 'Observação 2', 'Observacao 2', 'Obs Secundária', 'Obs Complementar']),
+            medidorInstalado: getValue(row, ['Medidor Instalado', 'medidorInstalado', 'Medidor', 'N° Medidor']),
+            situacao: detectarSituacao(getValue(row, ['Situacao', 'situacao', 'Situação', 'Status', 'Estado'])),
             usuario: localStorage.getItem("usuario")
           };
-          
-          console.log(`Processando linha ${i+1}:`, retornoData);
+
+          console.log(`Dados processados linha ${i+1}:`, retornoData);
           
           await addDoc(colRef, retornoData);
           successCount++;
@@ -105,56 +109,85 @@ window.handleFileImport = function(event) {
   event.target.value = '';
 };
 
-function detectarSituacao(situacao) {
-  if (!situacao) return 'Pendente';
+function getValue(row, possibleKeys) {
+  for (const key of possibleKeys) {
+    if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+      return row[key];
+    }
+  }
+  return '';
+}
+
+function detectarSituacao(valor) {
+  if (!valor) return 'Pendente';
   
-  const situacaoLower = situacao.toString().toLowerCase();
-  if (situacaoLower.includes('resolv') || 
-      situacaoLower.includes('conclu') ||
-      situacaoLower.includes('finaliz') ||
-      situacaoLower.includes('complet') ||
-      situacaoLower === 'resolvido') {
+  const valorStr = valor.toString().toLowerCase().trim();
+  
+  const resolvidoKeywords = [
+    'resolvido', 'concluído', 'concluido', 'finalizado', 
+    'completo', 'atendido', 'ok', 'feito', 'pronto', 'solucionado'
+  ];
+  
+  if (resolvidoKeywords.some(keyword => valorStr.includes(keyword))) {
     return 'Resolvido';
   }
+  
+  if (/100%|finaliz|complet|atendid|^ok$|^pronto$|solucionado/i.test(valorStr)) {
+    return 'Resolvido';
+  }
+  
   return 'Pendente';
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
+function formatarDataParaFirestore(dataStr) {
+  if (!dataStr) return '';
   
-  // Se já estiver no formato DD/MM/YYYY
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
-    return dateStr;
-  }
-  
-  // Se estiver no formato YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    const parts = dateStr.split('-');
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  
-  // Tenta converter de outros formatos
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) {
-    // Tenta parsear formato brasileiro
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-      // Assume formato DD/MM/YYYY ou MM/DD/YYYY
-      if (parts[0].length === 4) { // YYYY/MM/DD
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      } else if (parts[2].length === 4) { // DD/MM/YYYY ou MM/DD/YYYY
-        // Verifica se o dia é válido (>12)
-        if (parseInt(parts[0]) > 12) {
-          return `${parts[0]}/${parts[1]}/${parts[2]}`; // DD/MM/YYYY
-        } else {
-          return `${parts[1]}/${parts[0]}/${parts[2]}`; // MM/DD/YYYY -> DD/MM/YYYY
-        }
+  // Se for número (timestamp do Excel)
+  if (/^\d+$/.test(dataStr)) {
+    const excelTimestamp = parseInt(dataStr);
+    if (!isNaN(excelTimestamp)) {
+      // Converter timestamp do Excel (dias desde 01/01/1900)
+      const date = new Date((excelTimestamp - (25567 + 1)) * 86400 * 1000);
+      if (!isNaN(date.getTime())) {
+        return formatarDataParaExibicao(date);
       }
     }
-    return dateStr; // Retorna original se não for data válida
   }
   
-  // Formata como DD/MM/YYYY
+  // Tentar como objeto Date primeiro
+  const dateAttempt = new Date(dataStr);
+  if (!isNaN(dateAttempt.getTime())) {
+    return formatarDataParaExibicao(dateAttempt);
+  }
+  
+  // Tentar formato DD/MM/YYYY
+  const brFormat = dataStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (brFormat) {
+    const day = parseInt(brFormat[1], 10);
+    const month = parseInt(brFormat[2], 10) - 1;
+    let year = parseInt(brFormat[3], 10);
+    if (year < 100) year += 2000;
+    
+    const date = new Date(year, month, day);
+    if (!isNaN(date.getTime())) {
+      return formatarDataParaExibicao(date);
+    }
+  }
+  
+  // Tentar formato YYYY-MM-DD
+  const intFormat = dataStr.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (intFormat) {
+    const date = new Date(dataStr);
+    if (!isNaN(date.getTime())) {
+      return formatarDataParaExibicao(date);
+    }
+  }
+  
+  console.warn("Formato de data não reconhecido:", dataStr);
+  return '';
+}
+
+function formatarDataParaExibicao(date) {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
