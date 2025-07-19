@@ -29,30 +29,33 @@ function getValue(row, possibleKeys) {
   return '';
 }
 
-// Função especial para extrair irregularidades
+// Função especial para extrair irregularidades (APENAS NÚMEROS)
 function extrairIrregularidade(row) {
-  // Primeiro tenta encontrar em colunas nomeadas
+  // Tenta encontrar em colunas nomeadas
   const irregularidade = getValue(row, [
-    'Irregularidade', 'IRREGULARIDADE', 'Problema', 'PROBLEMA',
-    'Tipo Irregularidade', 'Motivo', 'MOTIVO', 'Descrição do Problema'
+    'Irregularidade', 'IRREGULARIDADE', 'Número da Irregularidade', 
+    'COD_IRREGULARIDADE', 'Código Irregularidade', 'Código', 'CODIGO'
   ]);
   
-  // Se não encontrar, procura por padrões no texto
-  if (!irregularidade) {
-    for (const key in row) {
-      if (typeof row[key] === 'string') {
-        const lowerValue = row[key].toLowerCase();
-        if (lowerValue.includes('sem foto') || 
-            lowerValue.includes('incompleto') ||
-            lowerValue.includes('faltando') ||
-            lowerValue.includes('divergente')) {
-          return row[key].substring(0, 150); // Limita o tamanho
-        }
+  // Extrai apenas números do valor encontrado
+  if (irregularidade) {
+    const apenasNumeros = irregularidade.toString().match(/\d+/g);
+    if (apenasNumeros && apenasNumeros.length > 0) {
+      return apenasNumeros.join('');
+    }
+  }
+  
+  // Se não encontrar, procura em outras colunas por padrões numéricos
+  for (const key in row) {
+    if (typeof row[key] === 'string' || typeof row[key] === 'number') {
+      const numerosEncontrados = row[key].toString().match(/\d+/g);
+      if (numerosEncontrados && numerosEncontrados.length > 0) {
+        return numerosEncontrados.join('');
       }
     }
   }
   
-  return irregularidade || '';
+  return ''; // Retorna vazio se não encontrar números
 }
 
 // Função especial para extrair observações
@@ -68,8 +71,8 @@ function extrairObservacao(row) {
     for (const key in row) {
       const value = row[key];
       if (typeof value === 'string' && value.length > 30 && 
-          !key.match(/data|instalacao|nota|equipe|lider|situacao/i)) {
-        return value.substring(0, 250); // Limita o tamanho
+          !key.match(/data|instalacao|nota|equipe|lider|situacao|irregularidade/i)) {
+        return value.substring(0, 250);
       }
     }
   }
@@ -209,7 +212,6 @@ window.handleFileImport = function(event) {
         progressElement.innerText = `Importando ${i+1} de ${jsonData.length}...`;
         
         try {
-          // Mostra os nomes reais das colunas na primeira linha
           if (i === 0) {
             console.log("Nomes reais das colunas na planilha:", Object.keys(row));
           }
