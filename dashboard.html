@@ -9,18 +9,19 @@
   <div class="dashboard-container">
     <h2 id="welcome"></h2>
 
-    <div class="filters">
-      <input type="text" id="filter-equipe" placeholder="Filtrar Equipe" class="filter-input">
-      <input type="text" id="filter-lider" placeholder="Filtrar Líder" class="filter-input">
-      <input type="text" id="filter-data" placeholder="Filtrar Data" class="filter-input">
-      <input type="text" id="filter-instalacao" placeholder="Filtrar Instalação" class="filter-input">
-      <input type="text" id="filter-nota" placeholder="Filtrar Nº Nota" class="filter-input">
-      <input type="text" id="filter-irregularidade" placeholder="Filtrar Irregularidade" class="filter-input">
-      <input type="text" id="filter-situacao" placeholder="Filtrar Situação" class="filter-input">
-    </div>
-
+    <!-- Filtros -->
     <table id="data-table">
       <thead>
+        <tr>
+          <th><input type="text" placeholder="Filtrar Equipe" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Líder" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Data" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Instalação" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Nota" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Irregularidade" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Observação" class="filter-input" /></th>
+          <th><input type="text" placeholder="Filtrar Situação" class="filter-input" /></th>
+        </tr>
         <tr>
           <th>Equipe</th>
           <th>Líder</th>
@@ -30,7 +31,6 @@
           <th>Irregularidade</th>
           <th>Observação</th>
           <th>Situação</th>
-          <th>Ações</th>
         </tr>
       </thead>
       <tbody></tbody>
