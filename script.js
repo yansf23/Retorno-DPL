@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBFaDw7RrG_9JOW8mWUV7gIP8F1f6yVUmg",
   authDomain: "retorno-dpl.firebaseapp.com",
@@ -14,93 +13,43 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Mostrar usuário logado
 const user = localStorage.getItem('user');
 const isLeader = user === 'herlayne';
 document.getElementById('welcome').innerText = `Bem-vindo(a), ${user}`;
 
-// Carregar dados do Firestore
-async function loadData() {
-  const querySnapshot = await getDocs(collection(db, "retornos"));
-  const tabela = document.querySelector("#data-table tbody");
-  tabela.innerHTML = "";
-
-  querySnapshot.forEach((docSnapshot) => {
-    const data = docSnapshot.data();
-    const tr = document.createElement("tr");
-    
-    // Adiciona células com os dados
-    const fields = ['equipe', 'lider', 'data', 'instalacao', 'numeroNota', 'irregularidade', 'observacao', 'situacao'];
-    fields.forEach(field => {
-      const td = document.createElement("td");
-      td.innerText = data[field] || "";
-      tr.appendChild(td);
+// Filtros por coluna
+document.querySelectorAll('.filter-input').forEach((input, index) => {
+  input.addEventListener('input', () => {
+    const valoresFiltro = Array.from(document.querySelectorAll('.filter-input')).map(i => i.value.toLowerCase());
+    document.querySelectorAll('#data-table tbody tr').forEach(row => {
+      let mostrar = true;
+      row.querySelectorAll('td').forEach((td, i) => {
+        if (!td.innerText.toLowerCase().includes(valoresFiltro[i])) mostrar = false;
+      });
+      row.style.display = mostrar ? '' : 'none';
     });
-
-    // Adiciona células de ações
-    const actionsTd = document.createElement("td");
-    
-    if (isLeader) {
-      const resolveBtn = document.createElement("button");
-      resolveBtn.className = "action-btn resolve-btn";
-      resolveBtn.innerText = "Resolvido";
-      resolveBtn.onclick = () => updateStatus(docSnapshot.id, "Resolvido");
-      actionsTd.appendChild(resolveBtn);
-    }
-
-    const pendingBtn = document.createElement("button");
-    pendingBtn.className = "action-btn pending-btn";
-    pendingBtn.innerText = "Pendente";
-    pendingBtn.onclick = () => updateStatus(docSnapshot.id, "Pendente");
-    actionsTd.appendChild(pendingBtn);
-
-    tr.appendChild(actionsTd);
-    tabela.appendChild(tr);
   });
+});
 
-  // Adiciona filtros
-  setupFilters();
-}
+// Exemplo de uso da função para adicionar retorno:
+async function adicionarRetorno(docData) {
+  if (!isLeader && docData.situacao.toLowerCase() === 'resolvido') {
+    alert("Somente a líder pode adicionar retornos resolvidos.");
+    return;
+  }
 
-// Atualizar status
-async function updateStatus(docId, status) {
   try {
-    await updateDoc(doc(db, "retornos", docId), {
-      situacao: status
-    });
-    loadData(); // Recarrega os dados após atualização
+    await addDoc(collection(db, "retornos"), docData);
+
+    const tabela = document.querySelector("#data-table tbody");
+    const tr = document.createElement("tr");
+    for (const key in docData) {
+      const td = document.createElement("td");
+      td.innerText = docData[key];
+      tr.appendChild(td);
+    }
+    tabela.appendChild(tr);
   } catch (e) {
-    console.error("Erro ao atualizar status:", e);
+    console.error("Erro ao salvar no Firestore:", e);
   }
 }
-
-// Configurar filtros
-function setupFilters() {
-  const filterInputs = [
-    'equipe', 'lider', 'data', 'instalacao', 'nota', 'irregularidade', 'situacao'
-  ];
-
-  filterInputs.forEach((filter, index) => {
-    const input = document.getElementById(`filter-${filter}`);
-    input.addEventListener('keyup', function() {
-      const filterValue = this.value.toLowerCase();
-      const table = document.getElementById("data-table");
-      const rows = table.getElementsByTagName("tr");
-
-      for (let i = 1; i < rows.length; i++) {
-        const cell = rows[i].getElementsByTagName("td")[index];
-        if (cell) {
-          const textValue = cell.textContent || cell.innerText;
-          if (textValue.toLowerCase().indexOf(filterValue) > -1) {
-            rows[i].style.display = "";
-          } else {
-            rows[i].style.display = "none";
-          }
-        }
-      }
-    });
-  });
-}
-
-// Carrega os dados quando a página é aberta
-window.addEventListener('DOMContentLoaded', loadData);
