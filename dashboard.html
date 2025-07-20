@@ -9,19 +9,11 @@
   <div class="dashboard-container">
     <h2 id="welcome"></h2>
 
-    <!-- Filtros -->
+    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" />
+    <button onclick="importarPlanilha()">Importar Planilha</button>
+
     <table id="data-table">
       <thead>
-        <tr>
-          <th><input type="text" placeholder="Filtrar Equipe" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Líder" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Data" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Instalação" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Nota" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Irregularidade" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Observação" class="filter-input" /></th>
-          <th><input type="text" placeholder="Filtrar Situação" class="filter-input" /></th>
-        </tr>
         <tr>
           <th>Equipe</th>
           <th>Líder</th>
